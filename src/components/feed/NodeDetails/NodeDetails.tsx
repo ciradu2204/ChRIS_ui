@@ -5,6 +5,7 @@ import {
   Grid,
   GridItem,
   ExpandableSection,
+  Tooltip,
 } from "@patternfly/react-core";
 
 import { Popover, Progress } from "antd";
@@ -18,6 +19,7 @@ import {
   FaDownload,
   FaTerminal,
   FaCalendarAlt,
+  FaCopy, 
   FaWindowClose,
 } from "react-icons/fa";
 import AddNode from "../AddNode/AddNode";
@@ -33,6 +35,7 @@ import { getErrorCodeMessage } from "./utils";
 import AddPipeline from "../AddPipeline/AddPipeline";
 import { SpinContainer } from "../../common/loading/LoadingContent";
 import { useFeedBrowser } from "../FeedOutputBrowser/useFeedBrowser";
+import { useParams } from "react-router";
 
 interface INodeProps {
   expandDrawer: (panel: string) => void;
@@ -57,13 +60,17 @@ const NodeDetails: React.FC<INodeProps> = ({ expandDrawer }) => {
   const selectedPlugin = useTypedSelector(
     (state) => state.instance.selectedPlugin
   );
+  const username = useTypedSelector((state) => state.user.username)
+  const {id} = useParams(); 
   const { download, downloadAllClick } = useFeedBrowser();
 
   const { plugin, instanceParameters, pluginParameters } = nodeState;
   const [isTerminalVisible, setIsTerminalVisible] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isErrorExpanded, setisErrorExpanded] = React.useState(false);
-
+  const [isCopiedToClipboard, setIsCopiedClipboard] = React.useState(false);
+  const copyText = 'Copy to clipboard';
+  const doneCopyText = 'Successfully copied to clipboard!';
   React.useEffect(() => {
     const fetchData = async () => {
       const instanceParameters = await selectedPlugin?.getParameters({
@@ -94,7 +101,13 @@ const NodeDetails: React.FC<INodeProps> = ({ expandDrawer }) => {
     instanceParameters,
     pluginParameters,
   ]);
-
+  const copyPathToClipboard = () => {
+       const path = `${username}/feed_${id}`
+       const command = `chrs download ${path}`
+       navigator.clipboard.writeText(command)
+       setIsCopiedClipboard(!isCopiedToClipboard); 
+  }
+ 
   const text =
     plugin && instanceParameters && pluginParameters
       ? command(plugin, instanceParameters, pluginParameters)
@@ -217,10 +230,15 @@ const NodeDetails: React.FC<INodeProps> = ({ expandDrawer }) => {
           <div className="node-details__actions_first">
             {cancelled ? null : <AddNode />}
             <AddPipeline />
-
+  
             <Button onClick={downloadAllClick} icon={<FaDownload />}>
               Download Files
             </Button>
+            <Tooltip aria="none" aria-live="polite" content={isCopiedToClipboard ?  doneCopyText : copyText}>
+            <Button onClick={copyPathToClipboard}  icon={<FaCopy/>}>
+              Copy chrs Download Command
+            </Button>
+            </Tooltip>
           </div>
 
           <div className="node-details__actions_second">
